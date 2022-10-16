@@ -538,7 +538,7 @@ public class HostReactor implements Closeable {
                     return;
                 }
                 delayTime = serviceObj.getCacheMillis();
-                resetFailCount();
+                resa'mingetFailCount();
             } catch (Throwable e) {
                 incFailCount();
                 NAMING_LOGGER.warn("[NA] failed to update serviceName: " + serviceName, e);

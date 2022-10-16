@@ -334,6 +334,7 @@ public class NacosNamingService implements NamingService {
     @Override
     public List<Instance> selectInstances(String serviceName, String groupName, boolean healthy, boolean subscribe)
             throws NacosException {
+        // subscribe 为true 表示订阅
         return selectInstances(serviceName, groupName, new ArrayList<String>(), healthy, subscribe);
     }
 
@@ -361,6 +362,7 @@ public class NacosNamingService implements NamingService {
 
         ServiceInfo serviceInfo;
         if (subscribe) {
+            // 获取到要调用服务的serviceInfo
             serviceInfo = hostReactor.getServiceInfo(NamingUtils.getGroupedName(serviceName, groupName),
                     StringUtils.join(clusters, ","));
         } else {
@@ -368,6 +370,7 @@ public class NacosNamingService implements NamingService {
                     .getServiceInfoDirectlyFromServer(NamingUtils.getGroupedName(serviceName, groupName),
                             StringUtils.join(clusters, ","));
         }
+        // todo 从serviceInfo的所有instance实例中过滤出所有可用的
         return selectInstances(serviceInfo, healthy);
     }
 
@@ -378,13 +381,15 @@ public class NacosNamingService implements NamingService {
         }
 
         Iterator<Instance> iterator = list.iterator();
+        // 迭代服务的所有instance实例
         while (iterator.hasNext()) {
             Instance instance = iterator.next();
+            // 若当前instance不是健康的，或不可用，或其权重小于等于0，则从列表中将其删除
             if (healthy != instance.isHealthy() || !instance.isEnabled() || instance.getWeight() <= 0) {
                 iterator.remove();
             }
         }
-
+        // 返回的这个列表中包含的instance都是可用的
         return list;
     }
 
