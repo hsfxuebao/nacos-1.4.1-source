@@ -686,9 +686,11 @@ public class ServiceManager implements RecordListener<Service> {
      */
     public void removeInstance(String namespaceId, String serviceName, boolean ephemeral, Instance... ips)
             throws NacosException {
+        // 从注册表获取当前service
         Service service = getService(namespaceId, serviceName);
 
         synchronized (service) {
+            // 删除
             removeInstance(namespaceId, serviceName, ephemeral, service, ips);
         }
     }
@@ -697,12 +699,12 @@ public class ServiceManager implements RecordListener<Service> {
             Instance... ips) throws NacosException {
 
         String key = KeyBuilder.buildInstanceListKey(namespaceId, serviceName, ephemeral);
-
+        // 从注册表中删除instance
         List<Instance> instanceList = substractIpAddresses(service, ephemeral, ips);
 
         Instances instances = new Instances();
         instances.setInstanceList(instanceList);
-
+        // 将本次变更同步给其它nacos
         consistencyService.put(key, instances);
     }
 
