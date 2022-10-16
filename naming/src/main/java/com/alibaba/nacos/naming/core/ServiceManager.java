@@ -821,7 +821,7 @@ public class ServiceManager implements RecordListener<Service> {
             // 若当前service中不包含当前要注册的instance所属cluster，则创建一个
             if (!service.getClusterMap().containsKey(instance.getClusterName())) {
                 Cluster cluster = new Cluster(instance.getClusterName(), service);
-                // 初始化cluster的健康检测任务
+                // todo 初始化cluster的健康检测任务
                 cluster.init();
                 service.getClusterMap().put(instance.getClusterName(), cluster);
                 Loggers.SRV_LOG

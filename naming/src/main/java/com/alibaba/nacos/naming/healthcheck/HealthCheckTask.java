@@ -31,32 +31,32 @@ import org.apache.commons.lang3.RandomUtils;
  * @author nacos
  */
 public class HealthCheckTask implements Runnable {
-    
+
     private Cluster cluster;
-    
+
     private long checkRtNormalized = -1;
-    
+
     private long checkRtBest = -1;
-    
+
     private long checkRtWorst = -1;
-    
+
     private long checkRtLast = -1;
-    
+
     private long checkRtLastLast = -1;
-    
+
     private long startTime;
-    
+
     private volatile boolean cancelled = false;
-    
+
     @JsonIgnore
     private final DistroMapper distroMapper;
-    
+
     @JsonIgnore
     private final SwitchDomain switchDomain;
-    
+
     @JsonIgnore
     private final HealthCheckProcessor healthCheckProcessor;
-    
+
     public HealthCheckTask(Cluster cluster) {
         this.cluster = cluster;
         distroMapper = ApplicationUtils.getBean(DistroMapper.class);
@@ -64,7 +64,7 @@ public class HealthCheckTask implements Runnable {
         healthCheckProcessor = ApplicationUtils.getBean(HealthCheckProcessorDelegate.class);
         initCheckRT();
     }
-    
+
     private void initCheckRT() {
         // first check time delay
         checkRtNormalized =
@@ -72,13 +72,15 @@ public class HealthCheckTask implements Runnable {
         checkRtBest = Long.MAX_VALUE;
         checkRtWorst = 0L;
     }
-    
+
     @Override
     public void run() {
-        
+
         try {
+
             if (distroMapper.responsible(cluster.getService().getName()) && switchDomain
                     .isHealthCheckEnabled(cluster.getService().getName())) {
+                // 处理该任务
                 healthCheckProcessor.process(this);
                 if (Loggers.EVT_LOG.isDebugEnabled()) {
                     Loggers.EVT_LOG
@@ -91,19 +93,20 @@ public class HealthCheckTask implements Runnable {
                             cluster.getName(), e);
         } finally {
             if (!cancelled) {
+                // 开启下次任务
                 HealthCheckReactor.scheduleCheck(this);
-                
+
                 // worst == 0 means never checked
                 if (this.getCheckRtWorst() > 0 && switchDomain.isHealthCheckEnabled(cluster.getService().getName())
                         && distroMapper.responsible(cluster.getService().getName())) {
                     // TLog doesn't support float so we must convert it into long
                     long diff =
                             ((this.getCheckRtLast() - this.getCheckRtLastLast()) * 10000) / this.getCheckRtLastLast();
-                    
+
                     this.setCheckRtLastLast(this.getCheckRtLast());
-                    
+
                     Cluster cluster = this.getCluster();
-                    
+
                     if (Loggers.CHECK_RT.isDebugEnabled()) {
                         Loggers.CHECK_RT.debug("{}:{}@{}->normalized: {}, worst: {}, best: {}, last: {}, diff: {}",
                                 cluster.getService().getName(), cluster.getName(), cluster.getHealthChecker().getType(),
@@ -114,67 +117,67 @@ public class HealthCheckTask implements Runnable {
             }
         }
     }
-    
+
     public Cluster getCluster() {
         return cluster;
     }
-    
+
     public void setCluster(Cluster cluster) {
         this.cluster = cluster;
     }
-    
+
     public long getCheckRtNormalized() {
         return checkRtNormalized;
     }
-    
+
     public long getCheckRtBest() {
         return checkRtBest;
     }
-    
+
     public long getCheckRtWorst() {
         return checkRtWorst;
     }
-    
+
     public void setCheckRtWorst(long checkRtWorst) {
         this.checkRtWorst = checkRtWorst;
     }
-    
+
     public void setCheckRtBest(long checkRtBest) {
         this.checkRtBest = checkRtBest;
     }
-    
+
     public void setCheckRtNormalized(long checkRtNormalized) {
         this.checkRtNormalized = checkRtNormalized;
     }
-    
+
     public boolean isCancelled() {
         return cancelled;
     }
-    
+
     public void setCancelled(boolean cancelled) {
         this.cancelled = cancelled;
     }
-    
+
     public long getStartTime() {
         return startTime;
     }
-    
+
     public void setStartTime(long startTime) {
         this.startTime = startTime;
     }
-    
+
     public long getCheckRtLast() {
         return checkRtLast;
     }
-    
+
     public void setCheckRtLast(long checkRtLast) {
         this.checkRtLast = checkRtLast;
     }
-    
+
     public long getCheckRtLastLast() {
         return checkRtLastLast;
     }
-    
+
     public void setCheckRtLastLast(long checkRtLastLast) {
         this.checkRtLastLast = checkRtLastLast;
     }

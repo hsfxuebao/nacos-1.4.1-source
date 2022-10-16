@@ -32,31 +32,31 @@ import java.util.stream.Collectors;
  */
 @Component("healthCheckDelegate")
 public class HealthCheckProcessorDelegate implements HealthCheckProcessor {
-    
+
     private Map<String, HealthCheckProcessor> healthCheckProcessorMap = new HashMap<>();
-    
+
     public HealthCheckProcessorDelegate(HealthCheckExtendProvider provider) {
         provider.init();
     }
-    
+
     @Autowired
     public void addProcessor(Collection<HealthCheckProcessor> processors) {
         healthCheckProcessorMap.putAll(processors.stream().filter(processor -> processor.getType() != null)
                 .collect(Collectors.toMap(HealthCheckProcessor::getType, processor -> processor)));
     }
-    
+
     @Override
     public void process(HealthCheckTask task) {
-        
+
         String type = task.getCluster().getHealthChecker().getType();
         HealthCheckProcessor processor = healthCheckProcessorMap.get(type);
         if (processor == null) {
             processor = healthCheckProcessorMap.get(NoneHealthCheckProcessor.TYPE);
         }
-        
+        // todo 处理任务
         processor.process(task);
     }
-    
+
     @Override
     public String getType() {
         return null;
