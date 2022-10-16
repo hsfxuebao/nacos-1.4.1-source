@@ -128,9 +128,11 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
      * @param rsInfo metrics info of server
      */
     public void processClientBeat(final RsInfo rsInfo) {
+        // 创建一个处理器，其是一个任务
         ClientBeatProcessor clientBeatProcessor = new ClientBeatProcessor();
         clientBeatProcessor.setService(this);
         clientBeatProcessor.setRsInfo(rsInfo);
+        // 开启一个立即执行的任务，即执行clientBeatProcessor任务的run()
         HealthCheckReactor.scheduleNow(clientBeatProcessor);
     }
 
