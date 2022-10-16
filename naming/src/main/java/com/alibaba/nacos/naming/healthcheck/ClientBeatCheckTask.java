@@ -128,7 +128,7 @@ public class ClientBeatCheckTask implements Runnable {
                     // delete instance
                     Loggers.SRV_LOG.info("[AUTO-DELETE-IP] service: {}, ip: {}", service.getName(),
                             JacksonUtils.toJson(instance));
-                    // 清除
+                    // todo 清除
                     deleteIp(instance);
                 }
             }
@@ -142,15 +142,19 @@ public class ClientBeatCheckTask implements Runnable {
     private void deleteIp(Instance instance) {
 
         try {
+            // 创建请求参数
             NamingProxy.Request request = NamingProxy.Request.newRequest();
             request.appendParam("ip", instance.getIp()).appendParam("port", String.valueOf(instance.getPort()))
                     .appendParam("ephemeral", "true").appendParam("clusterName", instance.getClusterName())
                     .appendParam("serviceName", service.getName()).appendParam("namespaceId", service.getNamespaceId());
 
+            // url
             String url = "http://" + IPUtil.localHostIP() + IPUtil.IP_PORT_SPLITER + EnvUtil.getPort() + EnvUtil.getContextPath()
                     + UtilsAndCommons.NACOS_NAMING_CONTEXT + "/instance?" + request.toUrl();
 
             // delete instance asynchronously:
+            // 调用 Nacos 自研的HttpClient完成Server间的请求提交，
+            // 该HttpClient是对Apache的Http异步Client的封装
             HttpClient.asyncHttpDelete(url, null, null, new Callback<String>() {
                 @Override
                 public void onReceive(RestResult<String> result) {
