@@ -42,7 +42,7 @@ import java.util.function.Function;
  * @author nkorange
  */
 public class WebUtils {
-    
+
     /**
      * get target value from parameterMap, if not found will throw {@link IllegalArgumentException}.
      *
@@ -51,6 +51,7 @@ public class WebUtils {
      * @return value
      */
     public static String required(final HttpServletRequest req, final String key) {
+        // 若请求中不包含指定属性值，抛异常
         String value = req.getParameter(key);
         if (StringUtils.isEmpty(value)) {
             throw new IllegalArgumentException("Param '" + key + "' is required.");
@@ -58,7 +59,7 @@ public class WebUtils {
         String encoding = req.getParameter("encoding");
         return resolveValue(value, encoding);
     }
-    
+
     /**
      * get target value from parameterMap, if not found will return default value.
      *
@@ -68,17 +69,20 @@ public class WebUtils {
      * @return value
      */
     public static String optional(final HttpServletRequest req, final String key, final String defaultValue) {
+        // 若请求map的值为空，则直接返回给定的默认值
         if (!req.getParameterMap().containsKey(key) || req.getParameterMap().get(key)[0] == null) {
             return defaultValue;
         }
+        // 若其值为 空白字符，直接返回默认值
         String value = req.getParameter(key);
         if (StringUtils.isBlank(value)) {
             return defaultValue;
         }
         String encoding = req.getParameter("encoding");
+        // todo 使用指定字符编码 对属性值进行解码
         return resolveValue(value, encoding);
     }
-    
+
     /**
      * decode target value.
      *
@@ -91,12 +95,13 @@ public class WebUtils {
             encoding = StandardCharsets.UTF_8.name();
         }
         try {
+            // 解码
             value = new String(value.getBytes(StandardCharsets.UTF_8), encoding);
         } catch (UnsupportedEncodingException ignore) {
         }
         return value.trim();
     }
-    
+
     /**
      * decode target value with UrlDecode.
      *
@@ -123,7 +128,7 @@ public class WebUtils {
         }
         return value.trim();
     }
-    
+
     /**
      * get accept encode from request.
      *
@@ -135,7 +140,7 @@ public class WebUtils {
         encode = encode.contains(",") ? encode.substring(0, encode.indexOf(",")) : encode;
         return encode.contains(";") ? encode.substring(0, encode.indexOf(";")) : encode;
     }
-    
+
     /**
      * Returns the value of the request header "user-agent" as a <code>String</code>.
      *
@@ -151,7 +156,7 @@ public class WebUtils {
         }
         return userAgent;
     }
-    
+
     /**
      * response data to client.
      *
@@ -166,7 +171,7 @@ public class WebUtils {
         response.getWriter().write(body);
         response.setStatus(code);
     }
-    
+
     /**
      * Handle file upload operations.
      *
@@ -176,7 +181,7 @@ public class WebUtils {
      */
     public static void onFileUpload(MultipartFile multipartFile, Consumer<File> consumer,
             DeferredResult<RestResult<String>> response) {
-        
+
         if (Objects.isNull(multipartFile) || multipartFile.isEmpty()) {
             response.setResult(RestResultUtils.failed("File is empty"));
             return;
@@ -194,7 +199,7 @@ public class WebUtils {
             DiskUtils.deleteQuietly(tmpFile);
         }
     }
-    
+
     /**
      * Register DeferredResult in the callback of CompletableFuture.
      *
@@ -205,9 +210,9 @@ public class WebUtils {
      */
     public static <T> void process(DeferredResult<T> deferredResult, CompletableFuture<T> future,
             Function<Throwable, T> errorHandler) {
-        
+
         deferredResult.onTimeout(future::join);
-        
+
         future.whenComplete((t, throwable) -> {
             if (Objects.nonNull(throwable)) {
                 deferredResult.setResult(errorHandler.apply(throwable));
@@ -216,7 +221,7 @@ public class WebUtils {
             deferredResult.setResult(t);
         });
     }
-    
+
     /**
      * Register DeferredResult in the callback of CompletableFuture.
      *
@@ -228,9 +233,9 @@ public class WebUtils {
      */
     public static <T> void process(DeferredResult<T> deferredResult, CompletableFuture<T> future, Runnable success,
             Function<Throwable, T> errorHandler) {
-        
+
         deferredResult.onTimeout(future::join);
-        
+
         future.whenComplete((t, throwable) -> {
             if (Objects.nonNull(throwable)) {
                 deferredResult.setResult(errorHandler.apply(throwable));

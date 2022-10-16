@@ -23,16 +23,18 @@ import com.alibaba.nacos.naming.pojo.Record;
  *
  * @author nacos
  */
+// 泛型，指定监听的数据类型
 public interface RecordListener<T extends Record> {
-    
+
     /**
      * Determine if the listener was registered with this key.
      *
      * @param key candidate key
      * @return true if the listener was registered with this key
      */
+    // 判断的当前监听器是否监听 指定key
     boolean interests(String key);
-    
+
     /**
      * Determine if the listener is to be removed by matching the 'key'.
      *
@@ -40,7 +42,7 @@ public interface RecordListener<T extends Record> {
      * @return true if match success
      */
     boolean matchUnlistenKey(String key);
-    
+
     /**
      * Action to do if data of target key has changed.
      *
@@ -48,13 +50,15 @@ public interface RecordListener<T extends Record> {
      * @param value data of the key
      * @throws Exception exception
      */
+    // 若指定key的数据发生变更，则触发这个方法
     void onChange(String key, T value) throws Exception;
-    
+
     /**
      * Action to do if data of target key has been removed.
      *
      * @param key target key
      * @throws Exception exception
      */
+    // 若指定key的数据被删除，则触发这个方法
     void onDelete(String key) throws Exception;
 }

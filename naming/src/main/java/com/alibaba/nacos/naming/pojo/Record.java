@@ -20,12 +20,12 @@ import java.io.Serializable;
 
 /**
  * Record to transfer and store in Nacos cluster.
- *
+ * 在nacos集群传递和存储的数据记录
  * @author nkorange
  * @since 1.0.0
  */
 public interface Record extends Serializable {
-    
+
     /**
      * get the checksum of this record, usually for record comparison.
      *
