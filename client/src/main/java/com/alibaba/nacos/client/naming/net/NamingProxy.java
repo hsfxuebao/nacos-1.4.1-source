@@ -480,6 +480,7 @@ public class NamingProxy implements Closeable {
             }
         }
 
+        // GET请求
         String result = reqApi(UtilAndComs.nacosUrlBase + "/service/list", params, HttpMethod.GET);
 
         JsonNode json = JacksonUtils.toObj(result);
