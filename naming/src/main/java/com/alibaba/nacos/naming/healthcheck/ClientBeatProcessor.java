@@ -96,7 +96,7 @@ public class ClientBeatProcessor implements Runnable {
                                 .info("service: {} {POS} {IP-ENABLED} valid: {}:{}@{}, region: {}, msg: client beat ok",
                                         cluster.getService().getName(), ip, port, cluster.getName(),
                                         UtilsAndCommons.LOCALHOST_SITE);
-                        // 发布服务变更事件（其对后续我们要分析的UDP通信非常重要）
+                        // todo 发布服务变更事件（其对后续我们要分析的UDP通信非常重要）
                         getPushService().serviceChanged(service);
                     }
                 }
