@@ -379,7 +379,8 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
             if (clusterObj == null) {
                 continue;
             }
-
+            // 将当前遍历cluster的所有instance添加到result集合
+            // 包含所有持久实例与临时实例
             result.addAll(clusterObj.allIPs());
         }
         return result;
@@ -396,6 +397,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
             clusters = new ArrayList<>();
             clusters.addAll(clusterMap.keySet());
         }
+        // 获取到当前服务的所有cluster中的所有instance
         return allIPs(clusters);
     }
 
