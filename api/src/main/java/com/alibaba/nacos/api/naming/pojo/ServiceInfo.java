@@ -33,6 +33,7 @@ import java.util.List;
  * @author nkorange
  * @author shizhengxing
  */
+// 客户端使用这个实例：微服务信息实例，包含一个Instance列表
 @JsonInclude(Include.NON_NULL)
 public class ServiceInfo {
 

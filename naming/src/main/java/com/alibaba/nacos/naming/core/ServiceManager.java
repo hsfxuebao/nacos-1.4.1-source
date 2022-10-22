@@ -136,11 +136,11 @@ public class ServiceManager implements RecordListener<Service> {
      */
     @PostConstruct
     public void init() {
-        // 启动了一个定时任务：每60s当前Server会向其它Nacos Server发送一次本机注册表
+        // todo 启动了一个定时任务：每60s当前Server会向其它Nacos Server发送一次本机注册表
         // 本机注册表是以各个服务的checksum(字串拼接)形式被发送的
         GlobalExecutor.scheduleServiceReporter(new ServiceReporter(), 60000, TimeUnit.MILLISECONDS);
 
-        // 从其它Nacos Server获取到注册表中的所有instance的最新状态并更新到本地注册表
+        // todo 从其它Nacos Server获取到注册表中的所有instance的最新状态并更新到本地注册表
         GlobalExecutor.submitServiceUpdateManager(new UpdatedServiceProcessor());
 
         if (emptyServiceAutoClean) {
@@ -154,7 +154,7 @@ public class ServiceManager implements RecordListener<Service> {
             // the possibility that the service cache information may just be deleted
             // and then created due to the heartbeat mechanism
 
-            // 启动了一个定时任务：每30s清理一次注册表中的空service
+            // todo 启动了一个定时任务：每30s清理一次注册表中的空service
             // 空service，即没有任何instance的service
             GlobalExecutor.scheduleServiceAutoClean(new EmptyServiceAutoClean(), cleanEmptyServiceDelay,
                     cleanEmptyServicePeriod);
@@ -711,7 +711,7 @@ public class ServiceManager implements RecordListener<Service> {
         Service service = getService(namespaceId, serviceName);
 
         synchronized (service) {
-            // 删除
+            // todo 删除
             removeInstance(namespaceId, serviceName, ephemeral, service, ips);
         }
     }

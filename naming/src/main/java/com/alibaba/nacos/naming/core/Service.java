@@ -58,7 +58,7 @@ import java.util.Map;
  * <p>his class inherits from Service in API module and stores some fields that do not have to expose to client.
  *
  * @author nkorange
- */e
+ */
 @JsonInclude(Include.NON_NULL)
 public class Service extends com.alibaba.nacos.api.naming.pojo.Service implements Record, RecordListener<Instances> {
 

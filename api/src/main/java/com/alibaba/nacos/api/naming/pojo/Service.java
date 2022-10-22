@@ -31,82 +31,83 @@ import java.util.Map;
  * @author nkorange
  */
 public class Service implements Serializable {
-    
+
     private static final long serialVersionUID = -3470985546826874460L;
-    
+
     /**
      * service name.
      */
     private String name;
-    
+
     /**
      * protect threshold.
+     * 自我保护阈值
      */
     private float protectThreshold = 0.0F;
-    
+
     /**
      * application name of this service.
      */
     private String appName;
-    
+
     /**
      * Service group to classify services into different sets.
      */
     private String groupName;
-    
+
     private Map<String, String> metadata = new HashMap<String, String>();
-    
+
     public Service() {
     }
-    
+
     public Service(String name) {
         this.name = name;
     }
-    
+
     public String getName() {
         return name;
     }
-    
+
     public void setName(String name) {
         this.name = name;
     }
-    
+
     public float getProtectThreshold() {
         return protectThreshold;
     }
-    
+
     public void setProtectThreshold(float protectThreshold) {
         this.protectThreshold = protectThreshold;
     }
-    
+
     public String getAppName() {
         return appName;
     }
-    
+
     public void setAppName(String appName) {
         this.appName = appName;
     }
-    
+
     public String getGroupName() {
         return groupName;
     }
-    
+
     public void setGroupName(String groupName) {
         this.groupName = groupName;
     }
-    
+
     public Map<String, String> getMetadata() {
         return metadata;
     }
-    
+
     public void setMetadata(Map<String, String> metadata) {
         this.metadata = metadata;
     }
-    
+
     public void addMetadata(String key, String value) {
         this.metadata.put(key, value);
     }
-    
+
     @Override
     public String toString() {
         return "Service{" + "name='" + name + '\'' + ", protectThreshold=" + protectThreshold + ", appName='" + appName

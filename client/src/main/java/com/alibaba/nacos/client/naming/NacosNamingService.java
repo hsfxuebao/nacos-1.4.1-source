@@ -49,6 +49,7 @@ import java.util.Properties;
  *
  * @author nkorange
  */
+// 完成Client和Server间的通信
 @SuppressWarnings("PMD.ServiceOrDaoClassShouldEndWithImplRule")
 public class NacosNamingService implements NamingService {
 
@@ -497,6 +498,7 @@ public class NacosNamingService implements NamingService {
 
     @Override
     public ListView<String> getServicesOfServer(int pageNo, int pageSize, String groupName) throws NacosException {
+        // todo
         return getServicesOfServer(pageNo, pageSize, groupName, null);
     }
 

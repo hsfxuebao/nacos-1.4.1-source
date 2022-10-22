@@ -759,6 +759,7 @@ public class InstanceController {
         }
         // isCheck为true，表示需要检测instance的保护阈值
         if (isCheck) {
+            // reachProtectThreshold 是否达到保护阈值
             result.put("reachProtectThreshold", false);
         }
         // 获取服务的保护阈值

@@ -93,6 +93,7 @@ public class PushReceiver implements Runnable, Closeable {
                 // 根据不同的数据类型，形成不现的ack
                 String ack;
                 if ("dom".equals(pushPacket.type) || "service".equals(pushPacket.type)) {
+                    // todo 将来自Nacos Server发生变更的Service 更新到当前Nacos Client的本地注册表
                     hostReactor.processServiceJson(pushPacket.data);
 
                     // send ack to server

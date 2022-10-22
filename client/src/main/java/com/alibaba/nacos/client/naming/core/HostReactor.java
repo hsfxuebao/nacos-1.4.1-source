@@ -160,7 +160,7 @@ public class HostReactor implements Closeable {
      * @param json service json
      * @return service info
      */
-    // 来自Server的数据是最新 数据
+    // todo 来自Server的数据是最新 数据
     public ServiceInfo processServiceJson(String json) {
         // 转成ServiceInfo类
         ServiceInfo serviceInfo = JacksonUtils.toObj(json, ServiceInfo.class);
@@ -378,6 +378,7 @@ public class HostReactor implements Closeable {
 
     private void updateServiceNow(String serviceName, String clusters) {
         try {
+            // todo
             updateService(serviceName, clusters);
         } catch (NacosException e) {
             NAMING_LOGGER.error("[NA] failed to update serviceName: " + serviceName, e);
@@ -424,7 +425,7 @@ public class HostReactor implements Closeable {
         // 本地注册表中获取当前服务
         ServiceInfo oldService = getServiceInfo0(serviceName, clusters);
         try {
-            // 提交get请求，获取服务ServiceInfo
+            // todo 提交get请求，获取服务ServiceInfo
             // 需要注意，返回的是json串
             String result = serverProxy.queryList(serviceName, clusters, pushReceiver.getUdpPort(), false);
 
@@ -538,7 +539,7 @@ public class HostReactor implements Closeable {
                     return;
                 }
                 delayTime = serviceObj.getCacheMillis();
-                resa'mingetFailCount();
+                resetFailCount();
             } catch (Throwable e) {
                 incFailCount();
                 NAMING_LOGGER.warn("[NA] failed to update serviceName: " + serviceName, e);

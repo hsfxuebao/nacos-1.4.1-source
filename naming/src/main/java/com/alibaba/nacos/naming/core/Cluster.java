@@ -59,7 +59,7 @@ public class Cluster extends com.alibaba.nacos.api.naming.pojo.Cluster implement
 
     @JsonIgnore
     private HealthCheckTask checkTask;
-    // 持续实例集合
+    // 持久实例集合
     @JsonIgnore
     private Set<Instance> persistentInstances = new HashSet<>();
 

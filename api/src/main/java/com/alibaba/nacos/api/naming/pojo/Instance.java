@@ -33,6 +33,7 @@ import static com.alibaba.nacos.api.common.Constants.NUMBER_PATTERN;
  *
  * @author nkorange
  */
+// 实例，表示一个Nacos Client主机实例
 @JsonInclude(Include.NON_NULL)
 public class Instance implements Serializable {
 
@@ -41,6 +42,7 @@ public class Instance implements Serializable {
     /**
      * unique id of this instance.
      */
+    // 实例唯一id
     private String instanceId;
 
     /**
@@ -62,11 +64,12 @@ public class Instance implements Serializable {
      * instance health status.
      */
     // 用于标记临时实例的健康状态
-    private boolean healthy = true;n's
+    private boolean healthy = true;
 
     /**
      * If instance is enabled to accept request.
      */
+    // 决定是否实例可以接受请求
     private boolean enabled = true;
 
     /**
@@ -74,6 +77,7 @@ public class Instance implements Serializable {
      *
      * @since 1.0.0
      */
+    // 是否为临时实例
     private boolean ephemeral = true;
 
     /**
