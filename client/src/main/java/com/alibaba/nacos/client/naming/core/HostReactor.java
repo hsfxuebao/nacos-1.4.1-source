@@ -124,6 +124,7 @@ public class HostReactor implements Closeable {
     }
 
     public synchronized ScheduledFuture<?> addTask(UpdateTask task) {
+        // 默认延迟1s执行
         return executor.schedule(task, DEFAULT_DELAY, TimeUnit.MILLISECONDS);
     }
 
@@ -266,6 +267,7 @@ public class HostReactor implements Closeable {
             serviceInfo.setJsonFromServer(json);
             // 只要发生了变更，就将这个发生变更的serviceInfo记录到一个缓存队列
             if (newHosts.size() > 0 || remvHosts.size() > 0 || modHosts.size() > 0) {
+                // todo
                 NotifyCenter.publishEvent(new InstancesChangeEvent(serviceInfo.getName(), serviceInfo.getGroupName(),
                         serviceInfo.getClusters(), serviceInfo.getHosts()));
                 DiskCache.write(serviceInfo, cacheDir);
@@ -523,24 +525,31 @@ public class HostReactor implements Closeable {
                 } else {
                     // if serviceName already updated by push, we should not override it
                     // since the push data may be different from pull through force push
+                    // 仅仅刷新就可以了
                     refreshOnly(serviceName, clusters);
                 }
                 // 将来自于注册表的这个最后访问时间更新到当前client的缓存
                 lastRefTime = serviceObj.getLastRefTime();
 
+                // 如果这个事件分发器没有订阅这个service 并且futureMap中也没有这个任务
+                // 就终止这个任务
                 if (!notifier.isSubscribed(serviceName, clusters) && !futureMap
                         .containsKey(ServiceInfo.getKey(serviceName, clusters))) {
                     // abort the update task
                     NAMING_LOGGER.info("update task is stopped, service:" + serviceName + ", clusters:" + clusters);
                     return;
                 }
+                // 如果host为空就增加失败次数
                 if (CollectionUtils.isEmpty(serviceObj.getHosts())) {
                     incFailCount();
                     return;
                 }
+                // 这个值是由nacos服务端决定的，如果订阅了的话就是10s
                 delayTime = serviceObj.getCacheMillis();
+                // 重置失败次数
                 resetFailCount();
             } catch (Throwable e) {
+                // 增加失败次数
                 incFailCount();
                 NAMING_LOGGER.warn("[NA] failed to update serviceName: " + serviceName, e);
             } finally {

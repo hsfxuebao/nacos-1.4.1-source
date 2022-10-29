@@ -401,10 +401,11 @@ public class NamingProxy implements Closeable {
         params.put(CommonParams.NAMESPACE_ID, namespaceId);
         params.put(CommonParams.SERVICE_NAME, serviceName);
         params.put("clusters", clusters);
+        // udp端口
         params.put("udpPort", String.valueOf(udpPort));
         params.put("clientIP", NetUtils.localIP());
         params.put("healthyOnly", String.valueOf(healthyOnly));
-
+        // 发起请求/nacos/v1/ns/instance/list GET请求
         return reqApi(UtilAndComs.nacosUrlBase + "/instance/list", params, HttpMethod.GET);
     }
 

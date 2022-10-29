@@ -503,6 +503,7 @@ public class ServiceManager implements RecordListener<Service> {
             service.setNamespaceId(namespaceId);
             service.setGroupName(NamingUtils.getGroupName(serviceName));
             // now validate the service. if failed, exception will be thrown
+            // 修改时间
             service.setLastModifiedMillis(System.currentTimeMillis());
             // todo 重新计算校验和
             service.recalculateChecksum();
@@ -539,12 +540,12 @@ public class ServiceManager implements RecordListener<Service> {
 
         // 从注册表获取到service
         Service service = getService(namespaceId, serviceName);
-
+        // 这里指定不能为null
         if (service == null) {
             throw new NacosException(NacosException.INVALID_PARAM,
                     "service not found, namespace: " + namespaceId + ", service: " + serviceName);
         }
-        // 将instance写入到service，即写入到了注册表
+        // todo 将instance写入到service，即写入到了注册表
         addInstance(namespaceId, serviceName, instance.isEphemeral(), instance);
     }
 
@@ -689,9 +690,10 @@ public class ServiceManager implements RecordListener<Service> {
             // todo 将要注册的instance写入到service，即写入到了注册表
             List<Instance> instanceList = addIpAddresses(service, ephemeral, ips);
 
+            // 塞到instance
             Instances instances = new Instances();
             instances.setInstanceList(instanceList);
-            // 将本次变更同步给其它Nacos
+            // todo 将本次变更同步给其它Nacos
             consistencyService.put(key, instances);
         }
     }
@@ -720,12 +722,12 @@ public class ServiceManager implements RecordListener<Service> {
             Instance... ips) throws NacosException {
 
         String key = KeyBuilder.buildInstanceListKey(namespaceId, serviceName, ephemeral);
-        // 从注册表中删除instance
+        // todo 从注册表中删除instance，返回下线完剩下的instance集合
         List<Instance> instanceList = substractIpAddresses(service, ephemeral, ips);
 
         Instances instances = new Instances();
         instances.setInstanceList(instanceList);
-        // 将本次变更同步给其它nacos
+        // todo 将本次变更同步给其它nacos,交给一致性服务进行存储，通知等
         consistencyService.put(key, instances);
     }
 

@@ -89,6 +89,7 @@ public class PushService implements ApplicationContextAware, ApplicationListener
 
     static {
         try {
+            // udp
             udpSocket = new DatagramSocket();
 
             Receiver receiver = new Receiver();
@@ -98,8 +99,10 @@ public class PushService implements ApplicationContextAware, ApplicationListener
             inThread.setName("com.alibaba.nacos.naming.push.receiver");
             inThread.start();
 
+            // 20s执行一次
             GlobalExecutor.scheduleRetransmitter(() -> {
                 try {
+                    // 移除 僵尸客户端
                     removeClientIfZombie();
                 } catch (Throwable e) {
                     Loggers.PUSH.warn("[NACOS-PUSH] failed to remove client zombie");
@@ -389,6 +392,7 @@ public class PushService implements ApplicationContextAware, ApplicationListener
      */
     public void serviceChanged(Service service) {
         // merge some change events to reduce the push frequency:
+        // 合并一些变更事件减少推送频率
         if (futureMap
                 .containsKey(UtilsAndCommons.assembleFullServiceName(service.getNamespaceId(), service.getName()))) {
             return;
@@ -635,7 +639,7 @@ public class PushService implements ApplicationContextAware, ApplicationListener
             udpSocket.send(ackEntry.origin);
 
             ackEntry.increaseRetryTime();
-            // 开启定时任务，进行UPD通信失败后的重新推送
+            // todo 开启定时任务，进行UPD通信失败后的重新推送
             GlobalExecutor.scheduleRetransmitter(new Retransmitter(ackEntry),
                     TimeUnit.NANOSECONDS.toMillis(ACK_TIMEOUT_NANOS), TimeUnit.MILLISECONDS);
 
@@ -681,8 +685,10 @@ public class PushService implements ApplicationContextAware, ApplicationListener
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
                 try {
+                    // 接收请求
                     udpSocket.receive(packet);
 
+                    // 接收到请求，然后拆包 反序列化
                     String json = new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8).trim();
                     AckPacket ackPacket = JacksonUtils.toObj(json, AckPacket.class);
 
@@ -690,25 +696,29 @@ public class PushService implements ApplicationContextAware, ApplicationListener
                     String ip = socketAddress.getAddress().getHostAddress();
                     int port = socketAddress.getPort();
 
+                    // 超过10s ack超时
                     if (System.nanoTime() - ackPacket.lastRefTime > ACK_TIMEOUT_NANOS) {
                         Loggers.PUSH.warn("ack takes too long from {} ack json: {}", packet.getSocketAddress(), json);
                     }
 
+                    // ackKey
                     String ackKey = getAckKey(ip, port, ackPacket.lastRefTime);
+                    // 移除
                     AckEntry ackEntry = ackMap.remove(ackKey);
                     if (ackEntry == null) {
                         throw new IllegalStateException(
                                 "unable to find ackEntry for key: " + ackKey + ", ack json: " + json);
                     }
 
+                    // 获取推送耗时
                     long pushCost = System.currentTimeMillis() - udpSendTimeMap.get(ackKey);
 
                     Loggers.PUSH
                             .info("received ack: {} from: {}:{}, cost: {} ms, unacked: {}, total push: {}", json, ip,
                                     port, pushCost, ackMap.size(), totalPush);
-
+                    // 推送耗时
                     pushCostMap.put(ackKey, pushCost);
-
+                    // 移除推送事件
                     udpSendTimeMap.remove(ackKey);
 
                 } catch (Throwable e) {

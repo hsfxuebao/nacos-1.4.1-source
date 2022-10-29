@@ -134,7 +134,7 @@ public class InstanceController {
         // 通过请求参数组装出instance
         final Instance instance = parseInstance(request);
 
-        // 将instance写到注册表
+        // todo 将instance写到注册表
         serviceManager.registerInstance(namespaceId, serviceName, instance);
         return "ok";
     }
@@ -535,7 +535,10 @@ public class InstanceController {
         service.processClientBeat(clientBeat);
 
         result.put(CommonParams.CODE, NamingResponseCode.OK);
+        // 这个就有点动态配置了
+        // 如果instance中有 preserved.heart.beat.interval 这个参数
         if (instance.containsMetadata(PreservedMetadataKeys.HEART_BEAT_INTERVAL)) {
+            // 就带回给客户端
             result.put(SwitchEntry.CLIENT_BEAT_INTERVAL, instance.getInstanceHeartBeatInterval());
         }
         result.put(SwitchEntry.LIGHT_BEAT_ENABLED, switchDomain.isLightBeatEnabled());
@@ -682,6 +685,7 @@ public class InstanceController {
 
         // now try to enable the push
         try {
+            // udpPort大于0，&& 客户端语言版本判断，看能不能UDP推送
             if (udpPort > 0 && pushService.canEnablePush(agent)) {
                 // 创建当前发出订阅请求的Nacos client的UDP Client
                 // 注意，在Nacos的UDP通信中，Nacos Server充当的是UDP Client，Nacos Client充当的是UDP Server

@@ -54,6 +54,7 @@ public class PushReceiver implements Runnable, Closeable {
     public PushReceiver(HostReactor hostReactor) {
         try {
             this.hostReactor = hostReactor;
+            // 开启一个udpSocket
             this.udpSocket = new DatagramSocket();
             // 创建一个线程池
             this.executorService = new ScheduledThreadPoolExecutor(1, new ThreadFactory() {

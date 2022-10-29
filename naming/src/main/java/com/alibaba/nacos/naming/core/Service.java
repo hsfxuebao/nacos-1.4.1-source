@@ -190,6 +190,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
                 throw new RuntimeException("got null instance " + key);
             }
 
+            // 处理权重问题
             if (instance.getWeight() > 10000.0D) {
                 instance.setWeight(10000.0D);
             }
@@ -199,6 +200,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
             }
         }
 
+        // todo 更新instance
         updateIPs(value.getInstanceList(), KeyBuilder.matchEphemeralInstanceListKey(key));
 
         recalculateChecksum();
@@ -248,16 +250,19 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
                     continue;
                 }
 
+                // cluster为null 就设置成默认DEFAULT
                 if (StringUtils.isEmpty(instance.getClusterName())) {
                     instance.setClusterName(UtilsAndCommons.DEFAULT_CLUSTER_NAME);
                 }
 
+                // cluster不存在就创建对应的cluster
                 if (!clusterMap.containsKey(instance.getClusterName())) {
                     Loggers.SRV_LOG
                             .warn("cluster: {} not found, ip: {}, will create new cluster with default configuration.",
                                     instance.getClusterName(), instance.toJson());
                     Cluster cluster = new Cluster(instance.getClusterName(), this);
                     cluster.init();
+                    // 加入map中
                     getClusterMap().put(instance.getClusterName(), cluster);
                 }
 
@@ -276,10 +281,13 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
         for (Map.Entry<String, List<Instance>> entry : ipMap.entrySet()) {
             //make every ip mine
             List<Instance> entryIPs = entry.getValue();
+            // 某个集群，更新下面的instance
             clusterMap.get(entry.getKey()).updateIps(entryIPs, ephemeral);
         }
 
+        // 设置 最近的一次修改时间
         setLastModifiedMillis(System.currentTimeMillis());
+        // 获取pushService 然后服务改变，通知改变
         getPushService().serviceChanged(this);
         StringBuilder stringBuilder = new StringBuilder();
 

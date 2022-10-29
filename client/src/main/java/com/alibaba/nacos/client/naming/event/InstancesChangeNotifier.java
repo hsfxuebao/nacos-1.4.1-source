@@ -37,11 +37,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 1.4.1
  */
 public class InstancesChangeNotifier extends Subscriber<InstancesChangeEvent> {
-    
+
     private final Map<String, ConcurrentHashSet<EventListener>> listenerMap = new ConcurrentHashMap<String, ConcurrentHashSet<EventListener>>();
-    
+
     private final Object lock = new Object();
-    
+
     /**
      * register listener.
      *
@@ -57,13 +57,14 @@ public class InstancesChangeNotifier extends Subscriber<InstancesChangeEvent> {
                 eventListeners = listenerMap.get(key);
                 if (eventListeners == null) {
                     eventListeners = new ConcurrentHashSet<EventListener>();
+                    // 加入观察者map中
                     listenerMap.put(key, eventListeners);
                 }
             }
         }
         eventListeners.add(listener);
     }
-    
+
     /**
      * deregister listener.
      *
@@ -82,7 +83,7 @@ public class InstancesChangeNotifier extends Subscriber<InstancesChangeEvent> {
             listenerMap.remove(key);
         }
     }
-    
+
     /**
      * check serviceName,clusters is subscribed.
      *
@@ -95,7 +96,7 @@ public class InstancesChangeNotifier extends Subscriber<InstancesChangeEvent> {
         ConcurrentHashSet<EventListener> eventListeners = listenerMap.get(key);
         return CollectionUtils.isNotEmpty(eventListeners);
     }
-    
+
     public List<ServiceInfo> getSubscribeServices() {
         List<ServiceInfo> serviceInfos = new ArrayList<ServiceInfo>();
         for (String key : listenerMap.keySet()) {
@@ -103,7 +104,7 @@ public class InstancesChangeNotifier extends Subscriber<InstancesChangeEvent> {
         }
         return serviceInfos;
     }
-    
+
     @Override
     public void onEvent(InstancesChangeEvent event) {
         String key = ServiceInfo.getKey(event.getServiceName(), event.getClusters());
@@ -125,16 +126,16 @@ public class InstancesChangeNotifier extends Subscriber<InstancesChangeEvent> {
             listener.onEvent(namingEvent);
         }
     }
-    
+
     private com.alibaba.nacos.api.naming.listener.Event transferToNamingEvent(
             InstancesChangeEvent instancesChangeEvent) {
         return new NamingEvent(instancesChangeEvent.getServiceName(), instancesChangeEvent.getGroupName(),
                 instancesChangeEvent.getClusters(), instancesChangeEvent.getHosts());
     }
-    
+
     @Override
     public Class<? extends Event> subscribeType() {
         return InstancesChangeEvent.class;
     }
-    
+
 }
