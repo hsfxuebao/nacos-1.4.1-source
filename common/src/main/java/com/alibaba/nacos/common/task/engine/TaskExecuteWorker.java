@@ -34,24 +34,24 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author xiweng.yy
  */
 public final class TaskExecuteWorker implements NacosTaskProcessor, Closeable {
-    
+
     /**
      * Max task queue size 32768.
      */
     private static final int QUEUE_CAPACITY = 1 << 15;
-    
+
     private final Logger log;
-    
+
     private final String name;
-    
+
     private final BlockingQueue<Runnable> queue;
-    
+
     private final AtomicBoolean closed;
-    
+
     public TaskExecuteWorker(final String name, final int mod, final int total) {
         this(name, mod, total, null);
     }
-    
+
     public TaskExecuteWorker(final String name, final int mod, final int total, final Logger logger) {
         this.name = name + "_" + mod + "%" + total;
         this.queue = new ArrayBlockingQueue<Runnable>(QUEUE_CAPACITY);
@@ -59,61 +59,68 @@ public final class TaskExecuteWorker implements NacosTaskProcessor, Closeable {
         this.log = null == logger ? LoggerFactory.getLogger(TaskExecuteWorker.class) : logger;
         new InnerWorker(name).start();
     }
-    
+
     public String getName() {
         return name;
     }
-    
+
+    //处理任务
     @Override
     public boolean process(NacosTask task) {
         if (task instanceof AbstractExecuteTask) {
+            // todo put任务
             putTask((Runnable) task);
         }
         return true;
     }
-    
+
     private void putTask(Runnable task) {
         try {
+            // 将任务放到 队列中
             queue.put(task);
         } catch (InterruptedException ire) {
             log.error(ire.toString(), ire);
         }
     }
-    
+
     public int pendingTaskCount() {
         return queue.size();
     }
-    
+
     /**
      * Worker status.
      */
     public String status() {
         return name + ", pending tasks: " + pendingTaskCount();
     }
-    
+
     @Override
     public void shutdown() throws NacosException {
         queue.clear();
         closed.compareAndSet(false, true);
     }
-    
+
     /**
      * Inner execute worker.
      */
     private class InnerWorker extends Thread {
-        
+
         InnerWorker(String name) {
             setDaemon(false);
             setName(name);
         }
-        
+
+        // 执行任务
         @Override
         public void run() {
             while (!closed.get()) {
                 try {
+                    // 1.从队列中取出任务
                     Runnable task = queue.take();
                     long begin = System.currentTimeMillis();
+                    //todo 2.执行任务
                     task.run();
+                    // 任务耗时
                     long duration = System.currentTimeMillis() - begin;
                     if (duration > 1000L) {
                         log.warn("distro task {} takes {}ms", task, duration);

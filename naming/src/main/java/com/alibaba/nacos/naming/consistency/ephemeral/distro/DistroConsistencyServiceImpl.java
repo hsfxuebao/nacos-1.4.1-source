@@ -106,9 +106,10 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
     // put 往存储器中放入数据
     @Override
     public void put(String key, Record value) throws NacosException {
-        // 往本地里面存储
+        // 往本地里面存储 + 内存队列
         onPut(key, value);
-        // todo 应该是同步
+        // todo 应该是同步，集群间同步
+        // /// 延迟1s ，默认是2000 ms ，然后/2
         distroProtocol.sync(new DistroKey(key, KeyBuilder.INSTANCE_LIST_KEY_PREFIX), DataOperation.CHANGE,
                 globalConfig.getTaskDispatchPeriod() / 2);
     }
@@ -302,6 +303,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
     public boolean processData(DistroData distroData) {
         DistroHttpData distroHttpData = (DistroHttpData) distroData;
         Datum<Instances> datum = (Datum<Instances>) distroHttpData.getDeserializedContent();
+        // todo
         onPut(datum.key, datum.value);
         return true;
     }
