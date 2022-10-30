@@ -45,15 +45,15 @@ import javax.annotation.PostConstruct;
 @DependsOn("ProtocolManager")
 @Service
 public class RaftConsistencyServiceImpl implements PersistentConsistencyService {
-    
+
     private final RaftCore raftCore;
-    
+
     private final RaftPeerSet peers;
-    
+
     private final SwitchDomain switchDomain;
-    
+
     private volatile boolean stopWork = false;
-    
+
     public RaftConsistencyServiceImpl(ClusterVersionJudgement versionJudgement, RaftCore raftCore,
             SwitchDomain switchDomain) {
         this.raftCore = raftCore;
@@ -70,18 +70,20 @@ public class RaftConsistencyServiceImpl implements PersistentConsistencyService 
             }
         }, 1000);
     }
-    
+
     @PostConstruct
     protected void init() throws Exception {
         if (EnvUtil.getProperty(Constants.NACOS_NAMING_USE_NEW_RAFT_FIRST, Boolean.class, false)) {
             this.raftCore.shutdown();
         }
     }
-    
+
     @Override
     public void put(String key, Record value) throws NacosException {
+        // 检查有没有停止
         checkIsStopWork();
         try {
+            // todo 找到这个
             raftCore.signalPublish(key, value);
         } catch (Exception e) {
             Loggers.RAFT.error("Raft put failed.", e);
@@ -89,7 +91,7 @@ public class RaftConsistencyServiceImpl implements PersistentConsistencyService 
                     e);
         }
     }
-    
+
     @Override
     public void remove(String key) throws NacosException {
         checkIsStopWork();
@@ -105,28 +107,28 @@ public class RaftConsistencyServiceImpl implements PersistentConsistencyService 
             throw new NacosException(NacosException.SERVER_ERROR, "Raft remove failed, key:" + key, e);
         }
     }
-    
+
     @Override
     public Datum get(String key) throws NacosException {
         checkIsStopWork();
         return raftCore.getDatum(key);
     }
-    
+
     @Override
     public void listen(String key, RecordListener listener) throws NacosException {
         raftCore.listen(key, listener);
     }
-    
+
     @Override
     public void unListen(String key, RecordListener listener) throws NacosException {
         raftCore.unListen(key, listener);
     }
-    
+
     @Override
     public boolean isAvailable() {
         return raftCore.isInitialized() || ServerStatus.UP.name().equals(switchDomain.getOverriddenServerStatus());
     }
-    
+
     /**
      * Put a new datum from other server.
      *
@@ -143,7 +145,7 @@ public class RaftConsistencyServiceImpl implements PersistentConsistencyService 
                     "Raft onPut failed, datum:" + datum + ", source: " + source, e);
         }
     }
-    
+
     /**
      * Remove a new datum from other server.
      *
@@ -160,7 +162,7 @@ public class RaftConsistencyServiceImpl implements PersistentConsistencyService 
                     "Raft onRemove failed, datum:" + datum + ", source: " + source, e);
         }
     }
-    
+
     private void checkIsStopWork() {
         if (stopWork) {
             throw new IllegalStateException("old raft protocol already stop work");

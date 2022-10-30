@@ -154,7 +154,7 @@ public class ServiceManager implements RecordListener<Service> {
             // the possibility that the service cache information may just be deleted
             // and then created due to the heartbeat mechanism
 
-            // todo 启动了一个定时任务：每30s清理一次注册表中的空service
+            // todo 启动了一个定时任务：每20s清理一次注册表中的空service
             // 空service，即没有任何instance的service
             GlobalExecutor.scheduleServiceAutoClean(new EmptyServiceAutoClean(), cleanEmptyServiceDelay,
                     cleanEmptyServicePeriod);
