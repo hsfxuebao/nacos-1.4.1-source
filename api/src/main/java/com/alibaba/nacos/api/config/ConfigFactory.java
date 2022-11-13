@@ -28,7 +28,7 @@ import java.util.Properties;
  * @author Nacos
  */
 public class ConfigFactory {
-    
+
     /**
      * Create Config.
      *
@@ -38,15 +38,18 @@ public class ConfigFactory {
      */
     public static ConfigService createConfigService(Properties properties) throws NacosException {
         try {
+            // 加载NacosConfigService类
             Class<?> driverImplClass = Class.forName("com.alibaba.nacos.client.config.NacosConfigService");
+            // 获取到NacosConfigService的带参构造器
             Constructor constructor = driverImplClass.getConstructor(Properties.class);
+            // 调用NacosConfigService的带参构造器
             ConfigService vendorImpl = (ConfigService) constructor.newInstance(properties);
             return vendorImpl;
         } catch (Throwable e) {
             throw new NacosException(NacosException.CLIENT_INVALID_PARAM, e);
         }
     }
-    
+
     /**
      * Create Config.
      *

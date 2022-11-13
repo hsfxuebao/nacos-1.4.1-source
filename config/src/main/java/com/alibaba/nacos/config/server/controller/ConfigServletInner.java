@@ -61,52 +61,62 @@ import static com.alibaba.nacos.config.server.utils.LogUtil.PULL_LOG;
  */
 @Service
 public class ConfigServletInner {
-    
+
     @Autowired
     private LongPollingService longPollingService;
-    
+
     @Autowired
     private PersistService persistService;
-    
+
     private static final int TRY_GET_LOCK_TIMES = 9;
-    
+
     private static final int START_LONG_POLLING_VERSION_NUM = 204;
-    
+
     /**
      * 轮询接口.
      */
     public String doPollingConfig(HttpServletRequest request, HttpServletResponse response,
             Map<String, String> clientMd5Map, int probeRequestSize) throws IOException {
-        
+
         // Long polling.
+        // 判断当前请求是否指定为长轮询处理方式
+        // 若请求头中包含了长轮询timeout，则表示处理方式为长轮询处理方式
         if (LongPollingService.isSupportLongPolling(request)) {
+            // todo 长轮询处理方式
             longPollingService.addLongPollingClient(request, response, clientMd5Map, probeRequestSize);
             return HttpServletResponse.SC_OK + "";
         }
-        
+
         // Compatible with short polling logic.
+
+        // ------------------- 以下是短轮询处理逻辑 ---------------------
+
+        // 获取目标配置中所有发生了配置变更的文件key
         List<String> changedGroups = MD5Util.compareMd5(request, response, clientMd5Map);
-        
+
         // Compatible with short polling result.
+        // 将变更文件key形成两种不同的结果，以兼容不同版本的client
         String oldResult = MD5Util.compareMd5OldResult(changedGroups);
         String newResult = MD5Util.compareMd5ResultString(changedGroups);
-        
+
+        // 从请求头中获取client版本
         String version = request.getHeader(Constants.CLIENT_VERSION_HEADER);
         if (version == null) {
             version = "2.0.0";
         }
         int versionNum = Protocol.getVersionNumber(version);
-        
+
         // Befor 2.0.4 version, return value is put into header.
+        // 根据不同的client版本，构建出不同的响应形式
         if (versionNum < START_LONG_POLLING_VERSION_NUM) {
             response.addHeader(Constants.PROBE_MODIFY_RESPONSE, oldResult);
             response.addHeader(Constants.PROBE_MODIFY_RESPONSE_NEW, newResult);
         } else {
             request.setAttribute("content", newResult);
         }
-        
+
         Loggers.AUTH.info("new content:" + newResult);
-        
+
         // Disable cache.
         response.setHeader("Pragma", "no-cache");
         response.setDateHeader("Expires", 0);
@@ -114,7 +124,7 @@ public class ConfigServletInner {
         response.setStatus(HttpServletResponse.SC_OK);
         return HttpServletResponse.SC_OK + "";
     }
-    
+
     /**
      * Execute to get config API.
      */
@@ -124,7 +134,7 @@ public class ConfigServletInner {
         String autoTag = request.getHeader("Vipserver-Tag");
         String requestIpApp = RequestUtil.getAppName(request);
         int lockResult = tryConfigReadLock(groupKey);
-        
+
         final String requestIp = RequestUtil.getRemoteIp(request);
         boolean isBeta = false;
         if (lockResult > 0) {
@@ -139,7 +149,7 @@ public class ConfigServletInner {
                             isBeta = true;
                         }
                     }
-    
+
                     final String configType =
                             (null != cacheItem.getType()) ? cacheItem.getType() : FileTypeEnum.TEXT.getFileType();
                     response.setHeader("Config-Type", configType);
@@ -175,7 +185,7 @@ public class ConfigServletInner {
                             } else {
                                 file = DiskUtil.targetTagFile(dataId, group, tenant, autoTag);
                             }
-                            
+
                             response.setHeader("Vipserver-Tag",
                                     URLEncoder.encode(autoTag, StandardCharsets.UTF_8.displayName()));
                         } else {
@@ -191,11 +201,11 @@ public class ConfigServletInner {
                                 // No longer exists. It is impossible to simply calculate the push delayed. Here, simply record it as - 1.
                                 ConfigTraceService.logPullEvent(dataId, group, tenant, requestIpApp, -1,
                                         ConfigTraceService.PULL_EVENT_NOTFOUND, -1, requestIp);
-                                
+
                                 // pullLog.info("[client-get] clientIp={}, {},
                                 // no data",
                                 // new Object[]{clientIp, groupKey});
-                                
+
                                 response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                                 response.getWriter().println("config data not exist");
                                 return HttpServletResponse.SC_NOT_FOUND + "";
@@ -223,20 +233,20 @@ public class ConfigServletInner {
                             // No longer exists. It is impossible to simply calculate the push delayed. Here, simply record it as - 1.
                             ConfigTraceService.logPullEvent(dataId, group, tenant, requestIpApp, -1,
                                     ConfigTraceService.PULL_EVENT_NOTFOUND, -1, requestIp);
-                            
+
                             // pullLog.info("[client-get] clientIp={}, {},
                             // no data",
                             // new Object[]{clientIp, groupKey});
-                            
+
                             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
                             response.getWriter().println("config data not exist");
                             return HttpServletResponse.SC_NOT_FOUND + "";
                         }
                     }
                 }
-                
+
                 response.setHeader(Constants.CONTENT_MD5, md5);
-                
+
                 // Disable cache.
                 response.setHeader("Pragma", "no-cache");
                 response.setDateHeader("Expires", 0);
@@ -247,7 +257,7 @@ public class ConfigServletInner {
                     fis = new FileInputStream(file);
                     response.setDateHeader("Last-Modified", file.lastModified());
                 }
-                
+
                 if (PropertyUtil.isDirectRead()) {
                     out = response.getWriter();
                     out.print(configInfoBase.getContent());
@@ -257,11 +267,11 @@ public class ConfigServletInner {
                     fis.getChannel()
                             .transferTo(0L, fis.getChannel().size(), Channels.newChannel(response.getOutputStream()));
                 }
-                
+
                 LogUtil.PULL_CHECK_LOG.warn("{}|{}|{}|{}", groupKey, requestIp, md5, TimeUtils.getCurrentTimeStr());
-                
+
                 final long delayed = System.currentTimeMillis() - lastModified;
-                
+
                 // TODO distinguish pull-get && push-get
                 /*
                  Otherwise, delayed cannot be used as the basis of push delay directly,
@@ -269,58 +279,58 @@ public class ConfigServletInner {
                  */
                 ConfigTraceService.logPullEvent(dataId, group, tenant, requestIpApp, lastModified,
                         ConfigTraceService.PULL_EVENT_OK, delayed, requestIp);
-                
+
             } finally {
                 releaseConfigReadLock(groupKey);
                 IoUtils.closeQuietly(fis);
             }
         } else if (lockResult == 0) {
-            
+
             // FIXME CacheItem No longer exists. It is impossible to simply calculate the push delayed. Here, simply record it as - 1.
             ConfigTraceService
                     .logPullEvent(dataId, group, tenant, requestIpApp, -1, ConfigTraceService.PULL_EVENT_NOTFOUND, -1,
                             requestIp);
-            
+
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             response.getWriter().println("config data not exist");
             return HttpServletResponse.SC_NOT_FOUND + "";
-            
+
         } else {
-            
+
             PULL_LOG.info("[client-get] clientIp={}, {}, get data during dump", clientIp, groupKey);
-            
+
             response.setStatus(HttpServletResponse.SC_CONFLICT);
             response.getWriter().println("requested file is being modified, please try later.");
             return HttpServletResponse.SC_CONFLICT + "";
-            
+
         }
-        
+
         return HttpServletResponse.SC_OK + "";
     }
-    
+
     private static void releaseConfigReadLock(String groupKey) {
         ConfigCacheService.releaseReadLock(groupKey);
     }
-    
+
     private static int tryConfigReadLock(String groupKey) {
-        
+
         // Lock failed by default.
         int lockResult = -1;
-        
+
         // Try to get lock times, max value: 10;
         for (int i = TRY_GET_LOCK_TIMES; i >= 0; --i) {
             lockResult = ConfigCacheService.tryReadLock(groupKey);
-            
+
             // The data is non-existent.
             if (0 == lockResult) {
                 break;
             }
-            
+
             // Success
             if (lockResult > 0) {
                 break;
             }
-            
+
             // Retry.
             if (i > 0) {
                 try {
@@ -330,19 +340,19 @@ public class ConfigServletInner {
                 }
             }
         }
-        
+
         return lockResult;
     }
-    
+
     private static boolean isUseTag(CacheItem cacheItem, String tag) {
         if (cacheItem != null && cacheItem.tagMd5 != null && cacheItem.tagMd5.size() > 0) {
             return StringUtils.isNotBlank(tag) && cacheItem.tagMd5.containsKey(tag);
         }
         return false;
     }
-    
+
     private static boolean fileNotExist(File file) {
         return file == null || !file.exists();
     }
-    
+
 }

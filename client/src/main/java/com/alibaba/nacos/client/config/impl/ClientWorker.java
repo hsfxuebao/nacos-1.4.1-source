@@ -113,8 +113,11 @@ public class ClientWorker implements Closeable {
             throws NacosException {
         group = null2defaultGroup(group);
         String tenant = agent.getTenant();
+        // todo 获取到指定文件对应的CacheData
         CacheData cache = addCacheDataIfAbsent(dataId, group, tenant);
+        // 将监听器添加到CacheData
         for (Listener listener : listeners) {
+            // todo
             cache.addListener(listener);
         }
     }
@@ -213,19 +216,25 @@ public class ClientWorker implements Closeable {
      * @return cache data
      */
     public CacheData addCacheDataIfAbsent(String dataId, String group, String tenant) throws NacosException {
+        // 构建文件key，格式为：  配置文件名+groupId
         String key = GroupKey.getKeyTenant(dataId, group, tenant);
+        // // 从缓存cacheMap中获取指定文件的cacheData, 若缓存中有该cacheData，则直接返回
         CacheData cacheData = cacheMap.get(key);
         if (cacheData != null) {
             return cacheData;
         }
 
+        // 创建CacheData
         cacheData = new CacheData(configFilterChainManager, agent.getName(), dataId, group, tenant);
         // multiple listeners on the same dataid+group and race condition
+        // 将cacheData写入到cacheMap
         CacheData lastCacheData = cacheMap.putIfAbsent(key, cacheData);
         if (lastCacheData == null) {
             //fix issue # 1317
             if (enableRemoteSyncConfig) {
+                // todo 从远程config server获取最新的配置信息
                 String[] ct = getServerConfig(dataId, group, tenant, 3000L);
+                // 将获取的最新数据写入到cacheData
                 cacheData.setContent(ct[0]);
             }
             int taskId = cacheMap.size() / (int) ParamUtil.getPerTaskConfigSize();
@@ -320,13 +329,20 @@ public class ClientWorker implements Closeable {
         final String dataId = cacheData.dataId;
         final String group = cacheData.group;
         final String tenant = cacheData.tenant;
+        // 获取到本地配置文件
         File path = LocalConfigInfoProcessor.getFailoverFile(agent.getName(), dataId, group, tenant);
 
+        // 若配置的是不使用本地配置文件，但该配置文件在本地又存在，那就使用它
         if (!cacheData.isUseLocalConfigInfo() && path.exists()) {
+            // 获取本地配置文件内容
             String content = LocalConfigInfoProcessor.getFailover(agent.getName(), dataId, group, tenant);
+            // 计算出该内容的md5
             final String md5 = MD5Utils.md5Hex(content, Constants.ENCODE);
+            // 设置 使用本地配置文件属性 为true
             cacheData.setUseLocalConfigInfo(true);
+            // 将本地配置文件的最后修改时间写入到cacheData
             cacheData.setLocalConfigInfoVersion(path.lastModified());
+            // 将本地配置文件内容写入到cacheData
             cacheData.setContent(content);
 
             LOGGER.warn(
@@ -336,6 +352,7 @@ public class ClientWorker implements Closeable {
         }
 
         // If use local config info, then it doesn't notify business listener and notify after getting from server.
+        // 若配置的是使用本地配置文件，但这个文件又不存在
         if (cacheData.isUseLocalConfigInfo() && !path.exists()) {
             cacheData.setUseLocalConfigInfo(false);
             LOGGER.warn("[{}] [failover-change] failover file deleted. dataId={}, group={}, tenant={}", agent.getName(),
@@ -344,6 +361,7 @@ public class ClientWorker implements Closeable {
         }
 
         // When it changed.
+        // 若设置的是使用本地配置文件，且文件也存在，且这个本地配置文件发生了变化
         if (cacheData.isUseLocalConfigInfo() && path.exists() && cacheData.getLocalConfigInfoVersion() != path
                 .lastModified()) {
             String content = LocalConfigInfoProcessor.getFailover(agent.getName(), dataId, group, tenant);
@@ -366,12 +384,16 @@ public class ClientWorker implements Closeable {
      */
     public void checkConfigInfo() {
         // Dispatch taskes.
+        // cacheMap的key为配置文件的key(配置文件名称+groupId)
+        // value为CacheData（每个配置文件都会有一个CacheData，用于存放来自于Server的配置文件数据）
         int listenerSize = cacheMap.size();
         // Round up the longingTaskCount.
+        // 向上取整
         int longingTaskCount = (int) Math.ceil(listenerSize / ParamUtil.getPerTaskConfigSize());
         if (longingTaskCount > currentLongingTaskCount) {
             for (int i = (int) currentLongingTaskCount; i < longingTaskCount; i++) {
                 // The task list is no order.So it maybe has issues when changing.
+                // todo 执行长轮询任务
                 executorService.execute(new LongPollingRunnable(i));
             }
             currentLongingTaskCount = longingTaskCount;
@@ -388,6 +410,8 @@ public class ClientWorker implements Closeable {
      */
     List<String> checkUpdateDataIds(List<CacheData> cacheDatas, List<String> inInitializingCacheList) throws Exception {
         StringBuilder sb = new StringBuilder();
+        // 将cacheDatas中的所有配置文件名称全部拼接为String，发送给Server，
+        // 让Server去检测这些文件是否发生了变更
         for (CacheData cacheData : cacheDatas) {
             if (!cacheData.isUseLocalConfigInfo()) {
                 sb.append(cacheData.dataId).append(WORD_SEPARATOR);
@@ -406,6 +430,7 @@ public class ClientWorker implements Closeable {
             }
         }
         boolean isInitializingCacheList = !inInitializingCacheList.isEmpty();
+        // todo 将这个配置文件名称String发送给Server
         return checkUpdateConfigStr(sb.toString(), isInitializingCacheList);
     }
 
@@ -438,12 +463,14 @@ public class ClientWorker implements Closeable {
             // increase the client's read timeout to avoid this problem.
 
             long readTimeoutMs = timeout + (long) Math.round(timeout >> 1);
+            // 提交请求
             HttpRestResult<String> result = agent
                     .httpPost(Constants.CONFIG_CONTROLLER_PATH + "/listener", headers, params, agent.getEncode(),
                             readTimeoutMs);
 
             if (result.ok()) {
                 setHealthServer(true);
+                // todo 解析result，返回所有发生变更的配置文件的key
                 return parseUpdateDataIdResponse(result.getData());
             } else {
                 setHealthServer(false);
@@ -477,6 +504,7 @@ public class ClientWorker implements Closeable {
 
         List<String> updateList = new LinkedList<String>();
 
+        // 进行字符串分割解析，将String解析为List
         for (String dataIdAndGroup : response.split(LINE_SEPARATOR)) {
             if (!StringUtils.isBlank(dataIdAndGroup)) {
                 String[] keyArr = dataIdAndGroup.split(WORD_SEPARATOR);
@@ -510,6 +538,7 @@ public class ClientWorker implements Closeable {
 
         init(properties);
 
+        // 创建一个线程池，仅包含一个核心线程， 用于执行后面的定时任务
         this.executor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -520,6 +549,10 @@ public class ClientWorker implements Closeable {
             }
         });
 
+        // 创建一个线程池，用于执行后续的长轮询任务，其包含的核心线程数量为当前server的逻辑内核数量
+        // ---------- Netty源码中的相关内容 --------------
+        // EventLoopGroup  -> 线程池
+        // EventLoop -> 线程驱动
         this.executorService = Executors
                 .newScheduledThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory() {
                     @Override
@@ -531,10 +564,12 @@ public class ClientWorker implements Closeable {
                     }
                 });
 
+        // 执行一个定时任务
         this.executor.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
                 try {
+                    // todo 发出配置更新检测请求
                     checkConfigInfo();
                 } catch (Throwable e) {
                     LOGGER.error("[" + agent.getName() + "] [sub-check] rotate check error", e);
@@ -579,10 +614,13 @@ public class ClientWorker implements Closeable {
             List<String> inInitializingCacheList = new ArrayList<String>();
             try {
                 // check failover config
+                // 遍历所有配置文件对应的cacheData
                 for (CacheData cacheData : cacheMap.values()) {
                     if (cacheData.getTaskId() == taskId) {
                         cacheDatas.add(cacheData);
                         try {
+                            // todo 将本地配置文件内容更新到当前cacheData
+                            // 本地配置文件，远程配置文件，快照配置文件
                             checkLocalConfig(cacheData);
                             if (cacheData.isUseLocalConfigInfo()) {
                                 cacheData.checkListenerMd5();
@@ -594,11 +632,14 @@ public class ClientWorker implements Closeable {
                 }
 
                 // check server config
+                // todo 从server端检测这些配置文件是否发生了变更
+                // 返回结果为所有发生了变更的配置文件的key
                 List<String> changedGroupKeys = checkUpdateDataIds(cacheDatas, inInitializingCacheList);
                 if (!CollectionUtils.isEmpty(changedGroupKeys)) {
                     LOGGER.info("get changedGroupKeys:" + changedGroupKeys);
                 }
 
+                // 遍历所有发生了变更的配置文件key
                 for (String groupKey : changedGroupKeys) {
                     String[] key = GroupKey.parseKey(groupKey);
                     String dataId = key[0];
@@ -608,8 +649,11 @@ public class ClientWorker implements Closeable {
                         tenant = key[2];
                     }
                     try {
+                        // todo 从server获取当前配置文件的最新内容
                         String[] ct = getServerConfig(dataId, group, tenant, 3000L);
+                        // 获取到当前配置文件的cacheData
                         CacheData cache = cacheMap.get(GroupKey.getKeyTenant(dataId, group, tenant));
+                        // 将更新过的内容写入到cacheData
                         cache.setContent(ct[0]);
                         if (null != ct[1]) {
                             cache.setType(ct[1]);
@@ -624,15 +668,18 @@ public class ClientWorker implements Closeable {
                         LOGGER.error(message, ioe);
                     }
                 }
+                // 收尾工作
                 for (CacheData cacheData : cacheDatas) {
                     if (!cacheData.isInitializing() || inInitializingCacheList
                             .contains(GroupKey.getKeyTenant(cacheData.dataId, cacheData.group, cacheData.tenant))) {
+                        // todo 监听回调
                         cacheData.checkListenerMd5();
                         cacheData.setInitializing(false);
                     }
                 }
                 inInitializingCacheList.clear();
 
+                // 启动下次的任务
                 executorService.execute(this);
 
             } catch (Throwable e) {

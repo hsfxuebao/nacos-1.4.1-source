@@ -44,7 +44,7 @@ import static com.alibaba.nacos.config.server.constant.Constants.WORD_SEPARATOR;
  */
 @SuppressWarnings("PMD.ClassNamingShouldBeCamelRule")
 public class MD5Util {
-    
+
     /**
      * Compare Md5.
      */
@@ -52,18 +52,22 @@ public class MD5Util {
             Map<String, String> clientMd5Map) {
         List<String> changedGroupKeys = new ArrayList<String>();
         String tag = request.getHeader("Vipserver-Tag");
+        // 遍历来自于请求的目标配置文件
         for (Map.Entry<String, String> entry : clientMd5Map.entrySet()) {
             String groupKey = entry.getKey();
             String clientMd5 = entry.getValue();
             String ip = RequestUtil.getRemoteIp(request);
+            // todo 判断当前遍历的配置文件是否发生了变更
             boolean isUptodate = ConfigCacheService.isUptodate(groupKey, clientMd5, ip, tag);
+            // 若配置发生变更，则将该文件的key记录下来
             if (!isUptodate) {
                 changedGroupKeys.add(groupKey);
             }
         }
+        // 返回所有发生变更的配置文件的key
         return changedGroupKeys;
     }
-    
+
     /**
      * Compare old Md5.
      */
@@ -78,7 +82,7 @@ public class MD5Util {
         }
         return sb.toString();
     }
-    
+
     /**
      * Join and encode changedGroupKeys string.
      */
@@ -86,9 +90,9 @@ public class MD5Util {
         if (null == changedGroupKeys) {
             return "";
         }
-        
+
         StringBuilder sb = new StringBuilder();
-        
+
         for (String groupKey : changedGroupKeys) {
             String[] dataIdGroupId = GroupKey2.parseKey(groupKey);
             sb.append(dataIdGroupId[0]);
@@ -103,11 +107,11 @@ public class MD5Util {
             }
             sb.append(LINE_SEPARATOR);
         }
-        
+
         // To encode WORD_SEPARATOR and LINE_SEPARATOR invisible characters, encoded value is %02 and %01
         return URLEncoder.encode(sb.toString(), "UTF-8");
     }
-    
+
     /**
      * Parse the transport protocol, which has two formats (W for field delimiter, L for each data delimiter) old: D w G
      * w MD5 l new: D w G w MD5 w T l.
@@ -116,16 +120,18 @@ public class MD5Util {
      * @return protocol message
      */
     public static Map<String, String> getClientMd5Map(String configKeysString) {
-        
+
         Map<String, String> md5Map = new HashMap<String, String>(5);
-        
+
         if (null == configKeysString || "".equals(configKeysString)) {
             return md5Map;
         }
         int start = 0;
         List<String> tmpList = new ArrayList<String>(3);
+        // 遍历整个字符串的每个字符
         for (int i = start; i < configKeysString.length(); i++) {
             char c = configKeysString.charAt(i);
+            // 处理当前字符为 单词分隔符 的情况
             if (c == WORD_SEPARATOR_CHAR) {
                 tmpList.add(configKeysString.substring(start, i));
                 start = i + 1;
@@ -133,13 +139,14 @@ public class MD5Util {
                     // Malformed message and return parameter error.
                     throw new IllegalArgumentException("invalid protocol,too much key");
                 }
+            // 处理当前字符为 行分隔符 的情况
             } else if (c == LINE_SEPARATOR_CHAR) {
                 String endValue = "";
                 if (start + 1 <= i) {
                     endValue = configKeysString.substring(start, i);
                 }
                 start = i + 1;
-                
+
                 // If it is the old message, the last digit is MD5. The post-multi-tenant message is tenant
                 if (tmpList.size() == 2) {
                     String groupKey = GroupKey2.getKey(tmpList.get(0), tmpList.get(1));
@@ -151,7 +158,7 @@ public class MD5Util {
                     md5Map.put(groupKey, tmpList.get(2));
                 }
                 tmpList.clear();
-                
+
                 // Protect malformed messages
                 if (md5Map.size() > 10000) {
                     throw new IllegalArgumentException("invalid protocol, too much listener");
@@ -160,12 +167,12 @@ public class MD5Util {
         }
         return md5Map;
     }
-    
+
     public static String toString(InputStream input, String encoding) throws IOException {
         return (null == encoding) ? toString(new InputStreamReader(input, Constants.ENCODE))
                 : toString(new InputStreamReader(input, encoding));
     }
-    
+
     /**
      * Reader to String.
      */
@@ -174,7 +181,7 @@ public class MD5Util {
         copy(reader, sw);
         return sw.toString();
     }
-    
+
     /**
      * Copy data to buffer.
      */
@@ -187,10 +194,10 @@ public class MD5Util {
         }
         return count;
     }
-    
+
     static final char WORD_SEPARATOR_CHAR = (char) 2;
-    
+
     static final char LINE_SEPARATOR_CHAR = (char) 1;
-    
+
 }
 

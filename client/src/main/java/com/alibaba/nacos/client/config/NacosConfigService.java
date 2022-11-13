@@ -83,8 +83,10 @@ public class NacosConfigService implements ConfigService {
         }
         initNamespace(properties);
 
+        // nacos自研的httpClient
         this.agent = new MetricsHttpAgent(new ServerHttpAgent(properties));
         this.agent.start();
+        // todo 创建worker
         this.worker = new ClientWorker(this.agent, this.configFilterChainManager, properties);
     }
 
@@ -109,6 +111,7 @@ public class NacosConfigService implements ConfigService {
 
     @Override
     public void addListener(String dataId, String group, Listener listener) throws NacosException {
+        // todo 添加监听器
         worker.addTenantListeners(dataId, group, Arrays.asList(listener));
     }
 
