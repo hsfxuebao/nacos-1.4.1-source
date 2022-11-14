@@ -280,7 +280,7 @@ public class ClientWorker implements Closeable {
                 params.put("group", group);
                 params.put("tenant", tenant);
             }
-            // 发送请求
+            // 发送请求 调用 /v1/cs/configs，获取配置信息
             result = agent.httpGet(Constants.CONFIG_CONTROLLER_PATH, null, params, agent.getEncode(), readTimeout);
         } catch (Exception ex) {
             String message = String
@@ -354,6 +354,7 @@ public class ClientWorker implements Closeable {
         // If use local config info, then it doesn't notify business listener and notify after getting from server.
         // 若配置的是使用本地配置文件，但这个文件又不存在
         if (cacheData.isUseLocalConfigInfo() && !path.exists()) {
+            // 设置 useLocalConfigInfo 为 false 后直接返回
             cacheData.setUseLocalConfigInfo(false);
             LOGGER.warn("[{}] [failover-change] failover file deleted. dataId={}, group={}, tenant={}", agent.getName(),
                     dataId, group, tenant);
@@ -394,6 +395,7 @@ public class ClientWorker implements Closeable {
             for (int i = (int) currentLongingTaskCount; i < longingTaskCount; i++) {
                 // The task list is no order.So it maybe has issues when changing.
                 // todo 执行长轮询任务
+                // 创建了长轮询对象 LongPollingRunnable ，交由线程池执行
                 executorService.execute(new LongPollingRunnable(i));
             }
             currentLongingTaskCount = longingTaskCount;
@@ -447,6 +449,7 @@ public class ClientWorker implements Closeable {
         Map<String, String> params = new HashMap<String, String>(2);
         params.put(Constants.PROBE_MODIFY_REQUEST, probeUpdateString);
         Map<String, String> headers = new HashMap<String, String>(2);
+        // 这里在请求头中塞了一个 "Long-Pulling-Timeout" 标识，这个是服务端长轮询的判断条件，非常重要
         headers.put("Long-Pulling-Timeout", "" + timeout);
 
         // told server do not hang me up if new initializing cacheData added in
@@ -463,7 +466,7 @@ public class ClientWorker implements Closeable {
             // increase the client's read timeout to avoid this problem.
 
             long readTimeoutMs = timeout + (long) Math.round(timeout >> 1);
-            // 提交请求
+            // 提交请求   调用服务端接口：/v1/cs/configs/listener
             HttpRestResult<String> result = agent
                     .httpPost(Constants.CONFIG_CONTROLLER_PATH + "/listener", headers, params, agent.getEncode(),
                             readTimeoutMs);
@@ -535,7 +538,7 @@ public class ClientWorker implements Closeable {
         this.configFilterChainManager = configFilterChainManager;
 
         // Initialize the timeout parameter
-
+        // 里面初始化了长轮询的超时时间，默认为 30s
         init(properties);
 
         // 创建一个线程池，仅包含一个核心线程， 用于执行后面的定时任务
@@ -564,7 +567,7 @@ public class ClientWorker implements Closeable {
                     }
                 });
 
-        // 执行一个定时任务
+        // 执行一个定时任务,初始化一个线程池，延迟 1 毫秒启动，之后每隔 10 毫秒执行一次，调用 checkConfigInfo() 方法
         this.executor.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
@@ -613,6 +616,7 @@ public class ClientWorker implements Closeable {
             List<CacheData> cacheDatas = new ArrayList<CacheData>();
             List<String> inInitializingCacheList = new ArrayList<String>();
             try {
+                // ====================  第一部分 检查本地文件  ====================
                 // check failover config
                 // 遍历所有配置文件对应的cacheData
                 for (CacheData cacheData : cacheMap.values()) {
@@ -623,6 +627,7 @@ public class ClientWorker implements Closeable {
                             // 本地配置文件，远程配置文件，快照配置文件
                             checkLocalConfig(cacheData);
                             if (cacheData.isUseLocalConfigInfo()) {
+                                // 如果 isUseLocalConfigInfo 返回为 true, 表示缓存和本地配置不一致
                                 cacheData.checkListenerMd5();
                             }
                         } catch (Exception e) {
@@ -630,7 +635,7 @@ public class ClientWorker implements Closeable {
                         }
                     }
                 }
-
+                // ====================  第二部分 检查服务端文件  ====================
                 // check server config
                 // todo 从server端检测这些配置文件是否发生了变更
                 // 返回结果为所有发生了变更的配置文件的key

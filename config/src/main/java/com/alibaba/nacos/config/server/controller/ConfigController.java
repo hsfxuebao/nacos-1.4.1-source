@@ -165,16 +165,19 @@ public class ConfigController {
         if (StringUtils.isBlank(betaIps)) {
             if (StringUtils.isBlank(tag)) {
                 persistService.insertOrUpdate(srcIp, srcUser, configInfo, time, configAdvanceInfo, true);
+                //  调用通知方法 notifyConfigChange
                 ConfigChangePublisher
                         .notifyConfigChange(new ConfigDataChangeEvent(false, dataId, group, tenant, time.getTime()));
             } else {
                 persistService.insertOrUpdateTag(configInfo, tag, srcIp, srcUser, time, true);
+                //  调用通知方法 notifyConfigChange
                 ConfigChangePublisher.notifyConfigChange(
                         new ConfigDataChangeEvent(false, dataId, group, tenant, tag, time.getTime()));
             }
         } else {
             // beta publish
             persistService.insertOrUpdateBeta(configInfo, betaIps, srcIp, srcUser, time, true);
+            //  调用通知方法 notifyConfigChange
             ConfigChangePublisher
                     .notifyConfigChange(new ConfigDataChangeEvent(true, dataId, group, tenant, time.getTime()));
         }

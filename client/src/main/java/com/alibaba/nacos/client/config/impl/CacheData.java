@@ -190,12 +190,14 @@ public class CacheData {
             final String md5, final ManagerListenerWrap listenerWrap) {
         final Listener listener = listenerWrap.listener;
 
+        // 创建一个 job 对象，用于异步执行
         Runnable job = new Runnable() {
             @Override
             public void run() {
                 ClassLoader myClassLoader = Thread.currentThread().getContextClassLoader();
                 ClassLoader appClassLoader = listener.getClass().getClassLoader();
                 try {
+                    // 如果是 AbstractConfigChangeListener ，创建 ConfigChangeEvent 对象
                     if (listener instanceof AbstractSharedListener) {
                         AbstractSharedListener adapter = (AbstractSharedListener) listener;
                         adapter.fillContext(dataId, group);
@@ -239,6 +241,7 @@ public class CacheData {
         final long startNotify = System.currentTimeMillis();
         try {
             if (null != listener.getExecutor()) {
+                // 执行
                 listener.getExecutor().execute(job);
             } else {
                 job.run();

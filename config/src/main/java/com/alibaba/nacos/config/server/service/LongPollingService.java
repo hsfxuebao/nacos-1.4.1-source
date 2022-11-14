@@ -240,7 +240,7 @@ public class LongPollingService {
     public void addLongPollingClient(HttpServletRequest req, HttpServletResponse rsp, Map<String, String> clientMd5Map,
             int probeRequestSize) {
 
-        // 从请求中获取长连接维护的时长
+        // 从请求中获取长连接维护的时长 就是客户端提交请求的超时时间,默认为 30s
         String str = req.getHeader(LongPollingService.LONG_POLLING_HEADER);
         // 从请求中获取长连接是否不进行挂起（boolean），该属性是针对 非固定时长长轮询 的
         String noHangUpFlag = req.getHeader(LongPollingService.LONG_POLLING_NO_HANG_UP_HEADER);
@@ -327,7 +327,7 @@ public class LongPollingService {
                 } else {
                     if (event instanceof LocalDataChangeEvent) {
                         LocalDataChangeEvent evt = (LocalDataChangeEvent) event;
-                        // 立即执行DataChangeTask任务
+                        // todo 立即执行DataChangeTask任务
                         ConfigExecutor.executeLongPolling(new DataChangeTask(evt.groupKey, evt.isBeta, evt.betaIps));
                     }
                 }
@@ -356,6 +356,7 @@ public class LongPollingService {
         public void run() {
             try {
                 ConfigCacheService.getContentBetaMd5(groupKey);
+                // 循环 allSubs 队列,取出所有的长连接
                 for (Iterator<ClientLongPolling> iter = allSubs.iterator(); iter.hasNext(); ) {
                     ClientLongPolling clientSub = iter.next();
                     if (clientSub.clientMd5Map.containsKey(groupKey)) {
@@ -376,6 +377,7 @@ public class LongPollingService {
                                         RequestUtil
                                                 .getRemoteIp((HttpServletRequest) clientSub.asyncContext.getRequest()),
                                         "polling", clientSub.clientMd5Map.size(), clientSub.probeRequestSize, groupKey);
+                        // 响应客户端请求
                         clientSub.sendResponse(Arrays.asList(groupKey));
                     }
                 }
@@ -419,7 +421,7 @@ public class LongPollingService {
 
         @Override
         public void run() { // 外层run()
-            // 定义并执行一个异步定时任务
+            // 定义并执行一个异步定时任务,并放入线程池中，延时 29.5s 执行一次
             asyncTimeoutFuture = ConfigExecutor.scheduleLongPolling(new Runnable() {
                 // 29.5s后会执行这个内层run()
                 @Override

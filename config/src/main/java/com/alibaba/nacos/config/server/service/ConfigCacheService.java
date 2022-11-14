@@ -98,6 +98,7 @@ public class ConfigCacheService {
             } else if (!PropertyUtil.isDirectRead()) {
                 DiskUtil.saveToDisk(dataId, group, tenant, content);
             }
+            // todo
             updateMd5(groupKey, md5, lastModifiedTs);
             return true;
         } catch (IOException ioe) {
@@ -467,6 +468,7 @@ public class ConfigCacheService {
         if (cache.md5 == null || !cache.md5.equals(md5)) {
             cache.md5 = md5;
             cache.lastModifiedTs = lastModifiedTs;
+            // 创建了一个 LocalDataChangeEvent 事件
             NotifyCenter.publishEvent(new LocalDataChangeEvent(groupKey));
         }
     }

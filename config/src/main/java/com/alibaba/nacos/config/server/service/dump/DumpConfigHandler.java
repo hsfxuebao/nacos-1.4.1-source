@@ -32,7 +32,7 @@ import com.alibaba.nacos.config.server.service.trace.ConfigTraceService;
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  */
 public class DumpConfigHandler extends Subscriber<ConfigDumpEvent> {
-    
+
     /**
      * trigger config dump event.
      *
@@ -64,26 +64,27 @@ public class DumpConfigHandler extends Subscriber<ConfigDumpEvent> {
                             content.length());
                 }
             }
-            
+
             return result;
         }
         if (StringUtils.isBlank(event.getTag())) {
             if (dataId.equals(AggrWhitelist.AGGRIDS_METADATA)) {
                 AggrWhitelist.load(content);
             }
-            
+
             if (dataId.equals(ClientIpWhiteList.CLIENT_IP_WHITELIST_METADATA)) {
                 ClientIpWhiteList.load(content);
             }
-            
+
             if (dataId.equals(SwitchService.SWITCH_META_DATAID)) {
                 SwitchService.load(content);
             }
-            
+
             boolean result;
             if (!event.isRemove()) {
+                // todo 重要代码，调用 dump() 方法
                 result = ConfigCacheService.dump(dataId, group, namespaceId, content, lastModified, type);
-                
+
                 if (result) {
                     ConfigTraceService.logDumpEvent(dataId, group, namespaceId, null, lastModified, event.getHandleIp(),
                             ConfigTraceService.DUMP_EVENT_OK, System.currentTimeMillis() - lastModified,
@@ -91,7 +92,7 @@ public class DumpConfigHandler extends Subscriber<ConfigDumpEvent> {
                 }
             } else {
                 result = ConfigCacheService.remove(dataId, group, namespaceId);
-                
+
                 if (result) {
                     ConfigTraceService.logDumpEvent(dataId, group, namespaceId, null, lastModified, event.getHandleIp(),
                             ConfigTraceService.DUMP_EVENT_REMOVE_OK, System.currentTimeMillis() - lastModified, 0);
@@ -117,14 +118,14 @@ public class DumpConfigHandler extends Subscriber<ConfigDumpEvent> {
             }
             return result;
         }
-        
+
     }
-    
+
     @Override
     public void onEvent(ConfigDumpEvent event) {
         configDump(event);
     }
-    
+
     @Override
     public Class<? extends Event> subscribeType() {
         return ConfigDumpEvent.class;

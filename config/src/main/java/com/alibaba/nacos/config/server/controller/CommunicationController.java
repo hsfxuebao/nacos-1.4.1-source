@@ -41,19 +41,19 @@ import javax.servlet.http.HttpServletResponse;
 @RestController
 @RequestMapping(Constants.COMMUNICATION_CONTROLLER_PATH)
 public class CommunicationController {
-    
+
     private final DumpService dumpService;
-    
+
     private final LongPollingService longPollingService;
-    
+
     private String trueStr = "true";
-    
+
     @Autowired
     public CommunicationController(DumpService dumpService, LongPollingService longPollingService) {
         this.dumpService = dumpService;
         this.longPollingService = longPollingService;
     }
-    
+
     /**
      * Notify the change of config information.
      *
@@ -70,13 +70,14 @@ public class CommunicationController {
         String handleIp = request.getHeader(NotifyService.NOTIFY_HEADER_OP_HANDLE_IP);
         String isBetaStr = request.getHeader("isBeta");
         if (StringUtils.isNotBlank(isBetaStr) && trueStr.equals(isBetaStr)) {
+            // todo 调用 dump() 方法
             dumpService.dump(dataId, group, tenant, lastModifiedTs, handleIp, true);
         } else {
             dumpService.dump(dataId, group, tenant, tag, lastModifiedTs, handleIp);
         }
         return true;
     }
-    
+
     /**
      * Get client config information of subscriber in local machine.
      *
@@ -87,7 +88,7 @@ public class CommunicationController {
         group = StringUtils.isBlank(group) ? Constants.DEFAULT_GROUP : group;
         return longPollingService.getCollectSubscribleInfo(dataId, group, tenant);
     }
-    
+
     /**
      * Get client config listener lists of subscriber in local machine.
      *
